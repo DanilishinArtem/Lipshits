@@ -5,7 +5,8 @@ from torch.utils.tensorboard import SummaryWriter
 from mnist.config import Config
 from mnist.learningProcess import LearningProcess
 from analizer.gradientLogger import GradientLogger
-    
+
+
 if __name__ == "__main__":
     model = Model()
     config = Config()

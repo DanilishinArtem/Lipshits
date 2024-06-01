@@ -7,12 +7,15 @@ from tqdm import tqdm
 import torch
 from torch.utils.tensorboard import SummaryWriter
 from analizer.gradientLogger import GradientLogger
+from analizer.lipshits import lipshits
+from analizer.lipshits import maxNorm
 
 class LearningProcess:
     def __init__(self, optimizer: optim, criterion: nn.Module, logger: GradientLogger = None, writer: SummaryWriter = None):
         self.config = Config()
         self.writer = writer
         self.train_loader, self.val_loader, self.test_loader = self.createDataset()
+        self.max_norm, self.max_diff_norm = maxNorm(self.train_loader)
         self.optimizer = optimizer
         self.criterion = criterion
         self.logger = logger
@@ -30,6 +33,8 @@ class LearningProcess:
         return train_loader, val_loader, test_loader
     
     def train(self, model: nn.Module):
+        L = lipshits(model)
+        upperBound = L * self.max_diff_norm + self.max_norm
         total_counter = 0
         for epoch in range(self.config.num_epochs):
             model.train()
@@ -44,7 +49,7 @@ class LearningProcess:
                 self.logger.log_gradients(total_counter)
                 self.optimizer.step()
                 total_loss += loss.item()
-                self.writer.add_scalar("Loss/train", loss.item() / self.config.batch_size, total_counter)
+                self.writer.add_scalars("Loss", {"train": loss.item() / self.config.batch_size, "upperBound": upperBound / total_counter}, total_counter)
             print(f"Training loss: {total_loss / len(self.train_loader)}")
 
     def validate(self, model: nn.Module):

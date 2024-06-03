@@ -8,7 +8,6 @@ class Model(nn.Module):
         self.conv2 = nn.Conv2d(32, 64, kernel_size=3, stride=1, padding=1)
         self.lin1 = nn.Linear(64 * 7 * 7, 128)
         self.lin2 = nn.Linear(128, 10)
-
     def forward(self, x):
         x = F.relu(self.conv1(x))
         x = F.max_pool2d(x, 2)

@@ -1,0 +1,5 @@
+total number of checked matrices: 1000
+left boundary:810.2633403898973
+right boundary:1189.7366596101028
+min eigvalue: tensor(-101.6034)
+max eigvalue: tensor(1008.8402)

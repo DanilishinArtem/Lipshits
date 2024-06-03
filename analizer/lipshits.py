@@ -37,3 +37,41 @@ def maxNorm(train_loader: DataLoader):
         max_diff_norm = max(max_diff_norm, batch_max_diff_norm)
         max_norm = max(max_norm, batch_max_norm)
     return max_norm, max_diff_norm
+
+def theoryLipshitsForLayer(layer: nn.Module, name: str):
+    lipschitz_constant = 1
+    if "conv" in name:
+        weights = layer.weight.detach()
+        mean = torch.mean(weights).item()
+        std = torch.std(weights).item()
+        lipschitz_constant = (mean * max(weights.shape)) + (2 * std * (max(weights.shape) ** 0.5))
+    elif "lin" in name:
+        weights = layer.weight.detach()
+        mean = torch.mean(weights).item()
+        std = torch.std(weights).item()
+        lipschitz_constant = (mean * max(weights.shape)) + (2 * std * (max(weights.shape) ** 0.5))
+    return lipschitz_constant
+        
+    
+def theoryLipshits(model: nn.Module):
+    lipshits_constants = []
+    for name, module in model.named_modules():
+        lipshits_constants.append(theoryLipshitsForLayer(module, name))
+    print(lipshits_constants)
+    return np.prod(lipshits_constants)
+
+def getNormOfGradientsForLayer(layer: nn.Module, name: str):
+    norm = 0
+    if "conv" in name:
+        gradients = layer.weight.grad.detach()
+        norm = torch.sum(gradients**2).item()
+    elif "lin" in name:
+        gradients = layer.weight.grad.detach()
+        norm = torch.sum(gradients**2).item()
+    return norm
+
+def getNormOfGradients(model: nn.Module):
+    norms = []
+    for name, module in model.named_modules():
+        norms.append(getNormOfGradientsForLayer(module, name))
+    return sum(norms)

@@ -9,6 +9,8 @@ from torch.utils.tensorboard import SummaryWriter
 from analizer.gradientLogger import GradientLogger
 from analizer.lipshits import lipshits
 from analizer.lipshits import maxNorm
+from analizer.lipshits import theoryLipshits
+from analizer.lipshits import getNormOfGradients
 
 class LearningProcess:
     def __init__(self, optimizer: optim, criterion: nn.Module, logger: GradientLogger = None, writer: SummaryWriter = None):
@@ -32,10 +34,18 @@ class LearningProcess:
         test_loader = DataLoader(test_dataset, batch_size=self.config.batch_size, shuffle=False)
         return train_loader, val_loader, test_loader
     
+
+
+
     def train(self, model: nn.Module):
         L = lipshits(model)
-        upperBound = L * self.max_diff_norm + self.max_norm
+        L_theory = theoryLipshits(model)
+        # distance between start value of loos function and optimal value (numerical value)
+        upperBound = (L * self.max_diff_norm + self.max_norm)
+        # distance between start value of loos function and optimal value (theoretical value)
+        upperBoundTheory = (L_theory * self.max_diff_norm + self.max_norm)
         total_counter = 0
+        normOfGradients = 0
         for epoch in range(self.config.num_epochs):
             model.train()
             total_loss = 0
@@ -46,10 +56,15 @@ class LearningProcess:
                 output = model(images)
                 loss = self.criterion(output, labels)
                 loss.backward()
+                
+                normOfGradients += getNormOfGradients(model)
+                
                 self.logger.log_gradients(total_counter)
                 self.optimizer.step()
                 total_loss += loss.item()
-                self.writer.add_scalars("Loss", {"train": loss.item() / self.config.batch_size, "upperBound": upperBound / total_counter}, total_counter)
+                self.writer.add_scalars("MeanGradients", {"numerical": normOfGradients / total_counter,"singularValues": upperBound / total_counter / self.config.learning_rate,"theoretical": upperBoundTheory / total_counter / self.config.learning_rate}, total_counter)
+                # self.writer.add_scalars("MeanGradients", {"numerical": normOfGradients / total_counter,"singularValues": upperBound / total_counter,"theoretical": upperBoundTheory / total_counter}, total_counter)
+                # self.writer.add_scalars("Loss", {"train": loss.item() / self.config.batch_size, "upperBound": upperBound / total_counter, "upperBoundTheory": upperBoundTheory / total_counter}, total_counter)
             print(f"Training loss: {total_loss / len(self.train_loader)}")
 
     def validate(self, model: nn.Module):

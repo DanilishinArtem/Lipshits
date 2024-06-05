@@ -21,8 +21,8 @@ class RandomNormalMatrix:
 
 
 def getTheoryBoundary(n: int, m: int, mean: float = 0.0, std: float = 1.0) -> tuple:
-    left = (n * mean) - (2 * std * (n ** 0.5))
-    right = (n * mean) + (2 * std * (n ** 0.5))
+    left = (n * mean) - (std * ((2*n) ** 0.5))
+    right = (n * mean) + (std * ((2*n) ** 0.5))
     return left, right
 
 
